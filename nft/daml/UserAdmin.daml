@@ -1,0 +1,97 @@
+module UserAdmin where
+
+import Token
+import Payment
+
+template Issuer
+    with
+        userAdmin: Party
+        issuer: Party
+    where
+        signatory userAdmin
+        observer issuer
+
+        nonconsuming choice MintToken: ContractId Token
+            with
+                description: Text
+                initialPrice: Decimal
+                currency: Text
+                royaltyRate: Decimal
+            controller issuer
+            do 
+                issued <- getTime
+                create Token
+                    with
+                        lastPrice = initialPrice
+                        owner = issuer
+                        ..
+
+        choice RevokeIssuer: ()
+            controller userAdmin
+            do return ()
+
+template IssuerRequest
+    with
+        userAdmin: Party
+        issuer: Party
+        reason: Text
+    where
+        signatory issuer
+        
+        choice GrantIssuerRights: ContractId Issuer
+            controller userAdmin
+            do
+                create Issuer with ..
+
+        choice RejectIssuerRequest: ()
+            controller userAdmin
+            do
+                return ()
+
+template Owner
+    with
+        userAdmin: Party
+        owner: Party
+    where
+        signatory userAdmin
+        observer owner
+        
+        nonconsuming choice AcceptTokenAsNewOwner: (ContractId Token, ContractId Payable, Optional(ContractId Payable))
+            with
+                offerId: ContractId TokenOffer
+            controller owner
+            do
+                exercise offerId AcceptToken 
+
+        nonconsuming choice AcceptTokenByKey: (ContractId Token, ContractId Payable, Optional(ContractId Payable))
+            with
+                issuer: Party
+                currentOwner: Party
+                description: Text
+            controller owner
+            do
+                exerciseByKey @TokenOffer (issuer, currentOwner, description) AcceptToken
+
+        choice RevokeOwnerRights: ()
+            controller userAdmin
+            do
+                return ()
+
+template OwnerRequest
+    with
+        userAdmin: Party
+        owner: Party
+        reason: Text
+    where
+        signatory owner
+        observer userAdmin
+        
+        choice GrantOwnerRights: ContractId Owner
+            controller userAdmin
+            do
+                create Owner with ..
+
+        choice RejectOwnerRequest: ()
+            controller userAdmin
+            do
+                return ()

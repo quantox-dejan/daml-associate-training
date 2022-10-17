@@ -1,0 +1,108 @@
+module Main where
+
+import Daml.Script
+import Token
+import UserAdmin
+
+type AssetId = ContractId Asset
+
+template Asset
+  with
+    issuer : Party
+    owner  : Party
+    name   : Text
+  where
+    ensure name /= ""
+    signatory issuer
+    observer owner
+    choice Give : AssetId
+      with
+        newOwner : Party
+      controller owner
+      do create this with
+           owner = newOwner
+
+setup : Script ()
+setup = script do
+-- user_setup_begin
+  alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
+  bob <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
+  charlie <- allocatePartyWithHint "Charlie" (PartyIdHint "Charlie")
+  admin <- allocatePartyWithHint "Admin" (PartyIdHint "Admin")
+  doug <- allocatePartyWithHint "Doug" (PartyIdHint "Doug")
+  ellen <- allocatePartyWithHint "Ellen" (PartyIdHint "Ellen")
+
+  aliceId <- validateUserId "alice"
+  bobId <- validateUserId "bob"
+  adminId <- validateUserId "admin"
+  charlieId <- validateUserId "charlie"
+  dougId <- validateUserId "doug"
+  ellenId <- validateUserId "ellen"
+
+  createUser (User aliceId (Some alice)) [CanActAs alice]
+  createUser (User bobId (Some bob)) [CanActAs bob]
+  createUser (User adminId (Some admin)) [CanActAs admin]
+  createUser (User charlieId (Some charlie)) [CanActAs charlie] 
+  createUser (User dougId (Some doug)) [CanActAs doug] 
+  createUser (User ellenId (Some ellen)) [CanActAs ellen] 
+-- user_setup_end
+
+  now <- getTime
+
+  aliceIssuer <- submit admin do
+    createCmd Issuer
+      with
+        userAdmin = admin
+        issuer = alice
+
+  originalToken <- submit alice do
+    exerciseCmd aliceIssuer MintToken
+      with
+        description = "Cat Pic 1"
+        initialPrice = 100.00
+        currency = "USD"
+        royaltyRate = 0.05
+
+  bobOffer <- submit alice do
+    exerciseCmd originalToken Offer
+      with
+        newOwner = bob
+        price = 200.00
+
+  bobRequest <- submit bob do
+    createCmd OwnerRequest
+      with
+        userAdmin = admin
+        owner = bob
+        reason = "Want to buy stuff"
+
+  bobOwner <- submit admin do
+    exerciseCmd bobRequest GrantOwnerRights
+
+  (bobToken, _, _) <- submit bob do
+    exerciseCmd bobOwner AcceptTokenAsNewOwner
+      with
+        offerId = bobOffer
+
+  charlieOffer <- submit bob do
+    exerciseCmd bobToken Offer
+      with
+        newOwner = charlie
+        price = 250.00
+
+  charlieRequest <- submit charlie do
+    createCmd OwnerRequest
+      with
+        userAdmin = admin
+        owner = charlie
+        reason = "Need to buy token from Bob"
+
+  charlieOwner <- submit admin do
+    exerciseCmd charlieRequest GrantOwnerRights
+
+  submit charlie do
+    exerciseCmd charlieOwner AcceptTokenAsNewOwner
+      with
+        offerId = charlieOffer
+
+  return ()

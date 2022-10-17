@@ -1,0 +1,74 @@
+module Token where
+
+import Payment
+
+template Token
+    with
+        issuer: Party
+        owner: Party
+        description: Text
+        userAdmin: Party
+        issued: Time
+        lastPrice: Decimal
+        currency: Text
+        royaltyRate: Decimal
+
+    where
+        signatory issuer, userAdmin
+        observer owner
+
+        choice Offer: ContractId TokenOffer    
+            with
+                newOwner: Party
+                price: Decimal
+            controller owner
+            do
+                create TokenOffer with ..
+
+template TokenOffer
+    with
+        issuer: Party
+        owner: Party
+        description: Text
+        userAdmin: Party
+        issued: Time
+        newOwner: Party
+        price: Decimal
+        lastPrice: Decimal
+        currency: Text
+        royaltyRate: Decimal
+    where
+        signatory issuer, userAdmin, owner
+        observer newOwner
+
+        key (issuer, owner, description): (Party, Party, Text)
+        maintainer key._2
+
+        choice AcceptToken: (ContractId Token, ContractId Payable, Optional(ContractId Payable))
+            controller newOwner, userAdmin
+            do 
+                fromNewOwnerToOwner <- create Payable
+                    with
+                        from = newOwner
+                        to = owner
+                        amount = price
+                        currency
+                        reference = "Notional for '" <> description <> "'."
+
+                conditionalRoyaltyPayment <- if owner == issuer
+                    then return None
+                    else Some <$> create Payable
+                        with
+                            from = newOwner
+                            to = issuer
+                            amount = price * royaltyRate
+                            currency
+                            reference = "Royalty for '" <> description <> "'."
+
+                newToken <- create Token
+                    with
+                        owner = newOwner
+                        lastPrice = price
+                        ..
+
+                return (newToken, fromNewOwnerToOwner, conditionalRoyaltyPayment)
