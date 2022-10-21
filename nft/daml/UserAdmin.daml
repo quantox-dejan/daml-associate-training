@@ -37,6 +37,7 @@ template IssuerRequest
         reason: Text
     where
         signatory issuer
+        observer userAdmin
         
         choice GrantIssuerRights: ContractId Issuer
             controller userAdmin
