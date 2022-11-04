@@ -5,24 +5,16 @@ import {
   dablLoginUrl,
   damlPartyKey,
   damlTokenKey,
+  tokenCookieName,
 } from "../config";
-
-type AuthenticatedUser = {
-  isAuthenticated: true;
-  token: string;
-  party: string;
-};
-
-type UnAthenticated = {
-  isAuthenticated: false;
-};
-
-type UserState = UnAthenticated | AuthenticatedUser;
+import { getInitState, UserState } from "./utils";
+import Cookies from "js-cookie";
 
 type LoginSuccess = {
   type: "LOGIN_SUCCESS";
   token: string;
   party: string;
+  partyName: string;
 };
 
 type LoginFailure = {
@@ -49,6 +41,7 @@ function userReducer(state: UserState, action: LoginAction): UserState {
         isAuthenticated: true,
         token: action.token,
         party: action.party,
+        partyName: action.partyName,
       };
     case "LOGIN_FAILURE":
       return { isAuthenticated: false };
@@ -58,13 +51,7 @@ function userReducer(state: UserState, action: LoginAction): UserState {
 }
 
 const UserProvider = ({ children }: PropsWithChildren) => {
-  const party = localStorage.getItem(damlPartyKey);
-  const token = localStorage.getItem(damlTokenKey);
-
-  let initState: UserState =
-    !!party && !!token
-      ? { isAuthenticated: true, token, party }
-      : { isAuthenticated: false };
+  let initState: UserState = getInitState();
   const [state, dispatch] = React.useReducer<
     React.Reducer<UserState, LoginAction>
   >(userReducer, initState);
@@ -113,7 +100,7 @@ function loginUser(
     localStorage.setItem(damlPartyKey, party);
     localStorage.setItem(damlTokenKey, token);
 
-    dispatch({ type: "LOGIN_SUCCESS", token, party });
+    dispatch({ type: "LOGIN_SUCCESS", token, party, partyName: party });
     setError(false);
     setIsLoading(false);
     history.push("/app");
@@ -129,9 +116,7 @@ const loginDablUser = () => {
 };
 
 function signOut(dispatch: React.Dispatch<LoginAction>, history: History) {
-  localStorage.removeItem("daml.party");
-  localStorage.removeItem("daml.token");
-
+  Cookies.remove(tokenCookieName);
   dispatch({ type: "SIGN_OUT_SUCCESS" });
   history.push("/login");
 }

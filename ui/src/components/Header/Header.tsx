@@ -5,10 +5,14 @@ import Toolbar from "@material-ui/core/Toolbar";
 import IconButton from "@material-ui/core/IconButton";
 import Typography from "@material-ui/core/Typography";
 import ExitToApp from "@material-ui/icons/ExitToApp";
-import { useUserDispatch, signOut, useUserState } from "../../context/UserContext";
+import {
+  useUserDispatch,
+  signOut,
+  useUserState,
+} from "../../context/UserContext";
 import useStyles from "./styles";
 
-const Header = ({ history } : RouteComponentProps) => {
+const Header = ({ history }: RouteComponentProps) => {
   const classes = useStyles();
 
   const userState = useUserState();
@@ -21,7 +25,9 @@ const Header = ({ history } : RouteComponentProps) => {
           Daml Private NFTs
         </Typography>
         <div className={classes.grow} />
-        { userState.isAuthenticated && <Typography variant="h6">User: {userState.party}</Typography> }
+        {userState.isAuthenticated && (
+          <Typography variant="h6">User: {userState.partyName}</Typography>
+        )}
         <IconButton
           aria-haspopup="true"
           color="inherit"
@@ -34,6 +40,6 @@ const Header = ({ history } : RouteComponentProps) => {
       </Toolbar>
     </AppBar>
   );
-}
+};
 
 export default withRouter(Header);

@@ -1,12 +1,12 @@
 import React, { useEffect } from "react";
 import { HashRouter, Redirect, Route, Switch } from "react-router-dom";
-import { damlPartyKey, damlTokenKey } from "./config";
 import { useUserDispatch, useUserState } from "./context/UserContext";
 import Layout from "./components/Layout/Layout";
 import ErrorComponent from "./pages/error/Error";
 import Login from "./pages/login/Login";
 
 import "./App.css";
+import { getInitState } from "./context/utils";
 
 function App() {
   const userState = useUserState();
@@ -33,21 +33,17 @@ function App() {
     const userDispatch = useUserDispatch();
 
     useEffect(() => {
-      const url = new URL(window.location.toString());
-      const token = url.searchParams.get("token");
-      if (token === null) {
+      const initState = getInitState();
+
+      if (initState === null) {
         return;
       }
-      const party = url.searchParams.get("party");
-      if (party === null) {
-        throw Error(
-          "When 'token' is passed via URL, 'party' must be passed too."
-        );
-      }
-      localStorage.setItem(damlPartyKey, party);
-      localStorage.setItem(damlTokenKey, token);
 
-      userDispatch({ type: "LOGIN_SUCCESS", token, party });
+      if (initState.isAuthenticated) {
+        userDispatch({ type: "LOGIN_SUCCESS", ...initState });
+      }
+
+      return;
     });
 
     return <Redirect to="/app/report" />;

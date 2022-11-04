@@ -130,10 +130,16 @@ export default function MyWorks() {
       if (!state) return;
       const wkp = await fetchWellKnownParties();
       if (!wkp.parties) return;
+      const userAdmin = wkp.parties?.find((x) => x.displayName === "UserAdmin");
+      if (!userAdmin) {
+        throw new Error(
+          "Unable to obtain the UserAdmin party from the default parties endpoint"
+        );
+      }
       await ledger.create(IssuerRequest, {
         ...state,
         issuer: party,
-        userAdmin: wkp.parties.userAdminParty,
+        userAdmin: userAdmin.identifier,
       });
     }
     setIssuerRequestProps({

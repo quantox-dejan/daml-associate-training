@@ -44,7 +44,6 @@ export default function MyTokens() {
   const party = useParty();
   const ownedByMe = () => [{ owner: party }];
   const ledger: Ledger = useLedger();
-  const tokens = useStreamQueries<Token, any, any>(Token, ownedByMe).contracts;
   const offeredByMe = useStreamQueries<TokenOffer, any, any>(
     TokenOffer,
     ownedByMe
@@ -85,10 +84,17 @@ export default function MyTokens() {
       if (!state) return;
       const wkp = await fetchWellKnownParties();
       if (!wkp.parties) return;
+      const userAdmin = wkp.parties?.find((x) => x.displayName === "UserAdmin");
+      if (!userAdmin) {
+        throw new Error(
+          "Unable to obtain the UserAdmin party from the default parties endpoint"
+        );
+      }
+
       await ledger.create(OwnerRequest, {
         ...state,
         owner: party,
-        userAdmin: wkp.parties.userAdminParty,
+        userAdmin: userAdmin.identifier,
       });
     }
     setOwnerRequestProps({ ...defaultOwnerRequestProps, open: true, onClose });

@@ -2,12 +2,12 @@ import * as jwt from "jsonwebtoken";
 
 export const isLocalDev = process.env.NODE_ENV === "development";
 
-let host = window.location.host.split(".");
+let hostParts = window.location.host.split(".");
 
 const applicationId = "sandbox";
-export const ledgerId = isLocalDev ? applicationId : host[0];
+export const ledgerId = isLocalDev ? applicationId : hostParts[0];
 
-let apiUrl = host.slice(1);
+let apiUrl = hostParts.slice(1);
 apiUrl.unshift("api");
 
 export const httpBaseUrl = isLocalDev
@@ -38,14 +38,12 @@ export const createToken = (party: string) =>
     "secret"
   );
 
-let loginUrl = host.slice(1);
-loginUrl.unshift("login");
-
 export const dablLoginUrl =
-  loginUrl.join(".") +
+  hostParts.join(".") +
   (window.location.port ? ":" + window.location.port : "") +
-  "/auth/login?ledgerId=" +
-  ledgerId;
+  "/.hub/v1/auth/login";
 
 export const damlPartyKey = applicationId + ".daml.party";
 export const damlTokenKey = applicationId + ".daml.token";
+
+export const tokenCookieName = "DAMLHUB_LEDGER_ACCESS_TOKEN";
