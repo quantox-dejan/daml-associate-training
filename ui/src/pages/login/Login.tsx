@@ -10,18 +10,20 @@ import {
   useUserDispatch,
   loginUser,
   loginDablUser,
+  useUserState,
 } from "../../context/UserContext";
 import { isLocalDev } from "../../config";
 import useStyles from "./styles";
 import logo from "./logo.svg";
+import { isAuthenticated } from "../../context/utils";
 
 const Login = (props: RouteComponentProps) => {
   var classes = useStyles();
   var userDispatch = useUserDispatch();
+  const userState = useUserState();
   var [isLoading, setIsLoading] = useState(false);
   var [error, setError] = useState(false);
   var [loginValue, setLoginValue] = useState("");
-  var [passwordValue, setPasswordValue] = useState("");
 
   return (
     <Grid container className={classes.container}>
@@ -46,7 +48,7 @@ const Login = (props: RouteComponentProps) => {
                   size="large"
                   onClick={loginDablUser}
                 >
-                  Log in with DABL
+                  Log in with Daml Hub
                 </Button>
                 <Typography>OR</Typography>
               </>
@@ -67,7 +69,6 @@ const Login = (props: RouteComponentProps) => {
                       loginUser(
                         userDispatch,
                         loginValue,
-                        passwordValue,
                         props.history,
                         setIsLoading,
                         setError
@@ -79,33 +80,11 @@ const Login = (props: RouteComponentProps) => {
                   type="email"
                   fullWidth
                 />
-                <TextField
-                  id="password"
-                  InputProps={{
-                    classes: {
-                      underline: classes.textFieldUnderline,
-                      input: classes.textField,
-                    },
-                  }}
-                  value={passwordValue}
-                  onChange={(e) => setPasswordValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      loginUser(
-                        userDispatch,
-                        loginValue,
-                        passwordValue,
-                        props.history,
-                        setIsLoading,
-                        setError
-                      );
-                    }
-                  }}
-                  margin="normal"
-                  placeholder="Password"
-                  type="password"
-                  fullWidth
-                />
+                {!isAuthenticated(userState) && userState.error ? (
+                  <Typography variant="caption" color="error">
+                    {userState.error}
+                  </Typography>
+                ) : null}
                 <div className={classes.formButtons}>
                   {isLoading ? (
                     <CircularProgress
@@ -119,7 +98,6 @@ const Login = (props: RouteComponentProps) => {
                         loginUser(
                           userDispatch,
                           loginValue,
-                          passwordValue,
                           props.history,
                           setIsLoading,
                           setError

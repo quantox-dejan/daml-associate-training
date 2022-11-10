@@ -4,15 +4,16 @@ import {
   object,
   string,
   boolean,
+  optional,
 } from "@mojotech/json-type-validation";
-import { isLocalDev } from "../../config";
+import { createToken, isLocalDev, userAdminDisplayName } from "../../config";
 
 /**
  * @param userAdminParty ID of the UserAdmin party on a ledger.
  * @param publicParty ID of the Public party on a ledger.
  */
 export type Party = {
-  displayName: string;
+  displayName?: string;
   identifier: string;
   isLocal: boolean;
 };
@@ -28,40 +29,31 @@ export type WellKnownParties = {
   error: unknown;
 };
 
-const localWellKnownParties = {
-  parties: [
-    {
-      displayName: "UserAdmin",
-      identifier: "userAdmin",
-      isLocal: true,
-    },
-    {
-      displayName: "Public",
-      identifier: "public",
-      isLocal: true,
-    },
-  ],
-  loading: false,
-  error: null,
-};
+const wellKnownEndpoint = () => {
+  if (!isLocalDev) {
+    return `//${window.location.host}/.hub/v1/default-parties`;
+  }
 
-function wellKnownEndPoint() {
-  const url = window.location.host;
-  return url + "/.hub/v1/default-parties";
-}
+  return `/v1/parties`;
+};
 
 const wellKnownPartiesDecoder: Decoder<Array<Party>> = array(
   object({
-    displayName: string(),
+    displayName: optional(string()),
     identifier: string(),
     isLocal: boolean(),
   })
 );
 
-export async function fetchWellKnownParties(): Promise<WellKnownParties> {
-  if (isLocalDev) return localWellKnownParties;
+async function fetchWellKnownParties(): Promise<WellKnownParties> {
   try {
-    const response = await fetch("//" + wellKnownEndPoint());
+    const endpoint = wellKnownEndpoint();
+    const response = await fetch(
+      endpoint,
+      isLocalDev
+        ? { headers: { Authorization: `Bearer ${createToken("public")}` } }
+        : undefined
+    );
     const dablJson = await response.json();
     const parties = wellKnownPartiesDecoder.runWithException(dablJson.result);
     return { parties, loading: false, error: null };
@@ -71,4 +63,19 @@ export async function fetchWellKnownParties(): Promise<WellKnownParties> {
     );
     return { parties: null, loading: false, error };
   }
+}
+
+export async function getUserAdmin(): Promise<Party | undefined> {
+  return await getParty(userAdminDisplayName);
+}
+
+export async function getParty(name: string): Promise<Party | undefined> {
+  const wkp = await fetchWellKnownParties();
+  if (!wkp.parties) {
+    return undefined;
+  }
+
+  return wkp.parties?.find(
+    (x) => x.displayName?.toLowerCase() === name.toLowerCase()
+  );
 }

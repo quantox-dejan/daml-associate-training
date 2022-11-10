@@ -18,8 +18,8 @@ import {
   IconButton,
   Popover,
 } from "@material-ui/core";
-import { fetchWellKnownParties } from "./wellKnownParties";
 import { CallMade, CallReceived, Check } from "@material-ui/icons";
+import { getUserAdmin } from "./wellKnownParties";
 
 function formatter(ccy: string, amountStr: string) {
   const ccyFormatter = new Intl.NumberFormat("en-us", {
@@ -82,9 +82,7 @@ export default function MyTokens() {
     async function onClose(state: FieldsForOwnerRequest | null) {
       setOwnerRequestProps({ ...defaultOwnerRequestProps, open: false });
       if (!state) return;
-      const wkp = await fetchWellKnownParties();
-      if (!wkp.parties) return;
-      const userAdmin = wkp.parties?.find((x) => x.displayName === "UserAdmin");
+      const userAdmin = await getUserAdmin();
       if (!userAdmin) {
         throw new Error(
           "Unable to obtain the UserAdmin party from the default parties endpoint"
@@ -97,6 +95,7 @@ export default function MyTokens() {
         userAdmin: userAdmin.identifier,
       });
     }
+
     setOwnerRequestProps({ ...defaultOwnerRequestProps, open: true, onClose });
   }
 

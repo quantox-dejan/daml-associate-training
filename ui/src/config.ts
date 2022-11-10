@@ -1,8 +1,13 @@
 import * as jwt from "jsonwebtoken";
 
 export const isLocalDev = process.env.NODE_ENV === "development";
+export const jsonApiPort = 7575;
+const localUserAdminDisplayName = "Admin";
+export const userAdminDisplayName = isLocalDev
+  ? localUserAdminDisplayName
+  : "UserAdmin";
 
-let hostParts = window.location.host.split(".");
+const hostParts = window.location.host.split(".");
 
 const applicationId = "sandbox";
 export const ledgerId = isLocalDev ? applicationId : hostParts[0];
@@ -22,7 +27,9 @@ export const httpBaseUrl = isLocalDev
 // Unfortunately, the development server of `create-react-app` does not proxy
 // websockets properly. Thus, we need to bypass it and talk to the JSON API
 // directly in development mode.
-export const wsBaseUrl = isLocalDev ? "ws://localhost:7575/" : undefined;
+export const wsBaseUrl = isLocalDev
+  ? `ws://localhost:${jsonApiPort}/`
+  : undefined;
 
 export const createToken = (party: string) =>
   jwt.sign(
@@ -42,8 +49,5 @@ export const dablLoginUrl =
   hostParts.join(".") +
   (window.location.port ? ":" + window.location.port : "") +
   "/.hub/v1/auth/login";
-
-export const damlPartyKey = applicationId + ".daml.party";
-export const damlTokenKey = applicationId + ".daml.token";
 
 export const tokenCookieName = "DAMLHUB_LEDGER_ACCESS_TOKEN";

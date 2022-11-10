@@ -1,14 +1,9 @@
 import React, { PropsWithChildren } from "react";
 import { History } from "history";
-import {
-  createToken,
-  dablLoginUrl,
-  damlPartyKey,
-  damlTokenKey,
-  tokenCookieName,
-} from "../config";
+import { createToken, dablLoginUrl, tokenCookieName } from "../config";
 import { getInitState, UserState } from "./utils";
 import Cookies from "js-cookie";
+import { getParty } from "../pages/report/wellKnownParties";
 
 type LoginSuccess = {
   type: "LOGIN_SUCCESS";
@@ -19,6 +14,7 @@ type LoginSuccess = {
 
 type LoginFailure = {
   type: "LOGIN_FAILURE";
+  error: string;
 };
 
 type SignoutSuccess = {
@@ -44,9 +40,9 @@ function userReducer(state: UserState, action: LoginAction): UserState {
         partyName: action.partyName,
       };
     case "LOGIN_FAILURE":
-      return { isAuthenticated: false };
+      return { isAuthenticated: false, error: action.error };
     case "SIGN_OUT_SUCCESS":
-      return { isAuthenticated: false };
+      return { isAuthenticated: false, error: undefined };
   }
 }
 
@@ -86,8 +82,7 @@ function useUserDispatch() {
 
 function loginUser(
   dispatch: React.Dispatch<LoginAction>,
-  party: string,
-  userToken: string,
+  partyName: string,
   history: History,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
   setError: React.Dispatch<React.SetStateAction<boolean>>
@@ -95,20 +90,39 @@ function loginUser(
   setError(false);
   setIsLoading(true);
 
-  if (!!party) {
-    const token = userToken || createToken(party);
-    localStorage.setItem(damlPartyKey, party);
-    localStorage.setItem(damlTokenKey, token);
+  getParty(partyName)
+    .then((party) => {
+      if (!party) {
+        dispatch({ type: "LOGIN_FAILURE", error: "Unknown user" });
+        setError(true);
+        return;
+      }
 
-    dispatch({ type: "LOGIN_SUCCESS", token, party, partyName: party });
-    setError(false);
-    setIsLoading(false);
-    history.push("/app");
-  } else {
-    dispatch({ type: "LOGIN_FAILURE" });
-    setError(true);
-    setIsLoading(false);
-  }
+      const token = createToken(party.identifier);
+      console.debug("TOKEN: ", token);
+      Cookies.set(tokenCookieName, token);
+      console.debug("COOKIE: ", Cookies.get(tokenCookieName));
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        token,
+        party: party.identifier,
+        partyName: party.displayName ?? party.identifier,
+      });
+      setError(false);
+      setIsLoading(false);
+      history.push("/app");
+    })
+    .catch((e) => {
+      dispatch({
+        type: "LOGIN_FAILURE",
+        error: e.message ? e.message : JSON.stringify(e),
+      });
+      setError(true);
+      console.error(e);
+    })
+    .finally(() => {
+      setIsLoading(false);
+    });
 }
 
 const loginDablUser = () => {

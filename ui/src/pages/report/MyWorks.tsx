@@ -23,7 +23,7 @@ import {
   Popover,
 } from "@material-ui/core";
 import Notes from "@material-ui/icons/Notes";
-import { fetchWellKnownParties } from "./wellKnownParties";
+import { getUserAdmin } from "./wellKnownParties";
 
 export default function MyWorks() {
   const classes = useStyles();
@@ -128,9 +128,7 @@ export default function MyWorks() {
     async function onClose(state: FieldsForIssuerRequest | null) {
       setIssuerRequestProps({ ...defaultIssuerRequestProps, open: false });
       if (!state) return;
-      const wkp = await fetchWellKnownParties();
-      if (!wkp.parties) return;
-      const userAdmin = wkp.parties?.find((x) => x.displayName === "UserAdmin");
+      const userAdmin = await getUserAdmin();
       if (!userAdmin) {
         throw new Error(
           "Unable to obtain the UserAdmin party from the default parties endpoint"

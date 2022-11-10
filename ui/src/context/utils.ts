@@ -10,6 +10,13 @@ export type AuthenticatedUser = {
 
 export type UnAthenticated = {
   isAuthenticated: false;
+  error?: string;
+};
+
+export const isAuthenticated = (
+  state: UnAthenticated | AuthenticatedUser
+): state is AuthenticatedUser => {
+  return state.isAuthenticated;
 };
 
 export type UserState = UnAthenticated | AuthenticatedUser;
